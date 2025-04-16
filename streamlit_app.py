@@ -6,7 +6,7 @@ import time  # 自動更新用
 st.set_page_config(page_title="あらた v2", layout="wide")
 
 # 自動更新（30秒ごとに再実行）
-st.experimental_set_query_params(_=str(int(time.time() // 30)))
+st.query_params(_=str(int(time.time() // 30)))
 
 # ヘッダー
 st.title("あらた：スニーカー利益分析ツール v2")
@@ -48,4 +48,4 @@ st.metric("利益率", f"{profit_rate:.2f}%")
 # 手動更新ボタン
 st.divider()
 if st.button("手動で更新する"):
-    st.experimental_rerun()
+    st.rerun()
