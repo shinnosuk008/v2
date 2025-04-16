@@ -18,3 +18,17 @@ st.markdown("""
 """)
 
 st.success("まもなく自動更新機能を接続します！引き続きよろしくお願いします。")
+# --- 仮データでの価格と利益表示（本番では自動取得に変更予定） ---
+sundun_price = 16000  # スニダン売値（仮）
+stockx_bid = 13000     # StockX Bid（仮）
+
+# 手数料引いた利益計算（スニダン手数料：10%で仮定）
+sundun_fee = 0.1
+profit = stockx_bid * (1 - sundun_fee) - sundun_price
+profit_rate = profit / sundun_price * 100
+
+st.write("### 実際の価格＆利益シミュレーション（仮）")
+st.metric("スニダン売値", f"¥{sundun_price:,}")
+st.metric("StockX 買取（Bid）", f"¥{stockx_bid:,}")
+st.metric("利益", f"¥{profit:,}")
+st.metric("利益率", f"{profit_rate:.2f}%")
