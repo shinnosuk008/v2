@@ -17,7 +17,14 @@ st.markdown("""
 - 利益額・利益率表示（販売履歴あり）
 """)
 
-st.success("まもなく自動更新機能を接続します！引き続きよろしくお願いします。")
+# 仮データ（本来はAPIなどから取得する想定）
+stockx_bid_price = 18000
+sudansell_price = 22000
+
+# 表示
+st.header("現在の価格情報")
+st.metric(label="StockX 買値（Bid）", value=f"¥{stockx_bid_price:,}")
+st.metric(label="スニダン 売値（手数料込）", value=f"¥{sudansell_price:,}")st.success("まもなく自動更新機能を接続します！引き続きよろしくお願いします。")
 # --- 仮データでの価格と利益表示（本番では自動取得に変更予定） ---
 sundun_price = 16000  # スニダン売値（仮）
 stockx_bid = 13000     # StockX Bid（仮）
