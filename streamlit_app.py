@@ -48,4 +48,4 @@ st.metric("利益率", f"{profit_rate:.2f}%")
 # 手動更新ボタン
 st.divider()
 if st.button("手動で更新する"):
-    st.rerun()
+st.rerun()
