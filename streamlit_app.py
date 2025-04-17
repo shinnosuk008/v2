@@ -53,7 +53,7 @@ if snkrdunk_url:
 
 # 手動更新ボタン
 if st.button("手動で再読み込みする"):
-    st.experimental_rerun()
+    st.rerun()
 
 # 自動更新（30秒）
 st.experimental_set_query_params(dummy=str(time.time()))
