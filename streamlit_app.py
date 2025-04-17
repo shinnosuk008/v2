@@ -1,43 +1,61 @@
-# streamlit_app.py
-
 import streamlit as st
+import pandas as pd
 import time
 
-st.set_page_config(page_title="あらた：スニーカー利益分析ツール v2", layout="centered")
+# タイトル
+st.title("スニダン → StockX 利益リサーチ v2正式版")
 
-# 更新用（強制再読み込み）
-if st.button("更新", key="reload"):
-    st.experimental_rerun()
+# 入力欄
+sku = st.text_input("品番（SKU）を入力してください", value="H06122")
+stockx_url = st.text_input("StockXリンクを貼り付けてください")
+snkrdunk_url = st.text_input("スニダンリンクを貼り付けてください")
 
-st.title("あらた：スニーカー利益分析ツール v2")
-st.caption(f"最終更新: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+# データ仮置き（今後スクレイピング/APIで自動化）
+sizes = ['23.0', '23.5', '24.0', '24.5', '25.0']
+stockx_bid_prices = [15000, 15200, 14800, 15100, 14900]
+stockx_ask_prices = [15500, 15700, 15300, 15600, 15400]
+snkrdunk_prices = [14000, 14200, 13800, 14100, 13900]
 
-st.header("対象モデル：adidas Women's Gazellebold 'Pink Glow/Victory Blue/Gum'")
+# スニダン手数料（ゴールド会員）
+purchase_fee_rate = 0.055  # 5.5%
+shipping_fee = 850 - 150    # 通常送料850円、ゴールド会員150円引き
 
-# 【手動入力】価格情報
-st.subheader("【手動入力】価格情報")
+# DataFrame作成
+data = []
+for size, bid, ask, snk_price in zip(sizes, stockx_bid_prices, stockx_ask_prices, snkrdunk_prices):
+    snk_total = snk_price * (1 + purchase_fee_rate) + shipping_fee
+    profit = bid - snk_total
+    profit_rate = profit / snk_total * 100
+    data.append({
+        'サイズ': size,
+        'スニダン仕入れ価格': snk_price,
+        'スニダン支払総額': int(snk_total),
+        'StockX最高Bid': bid,
+        'StockX最低Ask': ask,
+        '想定利益（円）': int(profit),
+        '利益率（%）': round(profit_rate, 1)
+    })
 
-snkrdunk_sell_price = st.number_input("スニダン売値（手数料込み）", value=22000, step=100)
-stockx_bid_price = st.number_input("StockX買取価格（Bid）", value=18000, step=100)
-stockx_ask_price = st.number_input("StockX販売価格（Ask）", value=20000, step=100)
-
-# 【利益シミュレーション】
-st.subheader("【利益シミュレーション】")
-
-snkrdunk_buy_price = st.number_input("スニダン仕入れ価格（円）", value=16000, step=100)
-
-profit = snkrdunk_sell_price - snkrdunk_buy_price
-profit_rate = (profit / snkrdunk_buy_price) * 100 if snkrdunk_buy_price else 0
-
-st.metric(label="利益", value=f"¥{profit:,}")
-st.metric(label="利益率", value=f"{profit_rate:.2f}%")
-
-# 【販売履歴入力】
-st.subheader("【販売履歴】")
-sales_history_input = st.text_area("販売履歴を入力（例：2025/4/15 00:00 ¥18,000）")
+df = pd.DataFrame(data)
 
 # 表示
-if sales_history_input:
-    st.subheader("表示された販売履歴")
-    for line in sales_history_input.splitlines():
-        st.write(line)
+st.subheader("リサーチ結果")
+st.dataframe(df)
+
+# リンクボタン
+st.markdown("---")
+st.subheader("リンク一覧")
+
+if stockx_url:
+    st.markdown(f"[StockX商品ページへ移動]({stockx_url})", unsafe_allow_html=True)
+if snkrdunk_url:
+    st.markdown(f"[スニダン商品ページへ移動]({snkrdunk_url})", unsafe_allow_html=True)
+
+# 手動更新ボタン
+if st.button("手動で再読み込みする"):
+    st.experimental_rerun()
+
+# 自動更新（30秒）
+st.experimental_set_query_params(dummy=str(time.time()))
+time.sleep(30)
+st.experimental_rerun()
