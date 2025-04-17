@@ -56,6 +56,6 @@ if st.button("手動で再読み込みする"):
     st.rerun()
 
 # 自動更新（30秒）
-st.experimental_set_query_params(dummy=str(time.time()))
+st.query_params(dummy=str(time.time()))
 time.sleep(30)
 st.experimental_rerun()
