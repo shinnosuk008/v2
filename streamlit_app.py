@@ -1,66 +1,51 @@
-import time
 import streamlit as st
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
+import requests
+from bs4 import BeautifulSoup
 
-# スニダン・StockXのURLをここに
-SNKR_URL = "https://snkrdunk.com/products/H06122"
-STOCKX_URL = "https://stockx.com/adidas-gazelle-bold-pink-glow-w"
+# 商品情報
+stockx_url = "https://stockx.com/adidas-gazelle-bold-pink-glow-w"
+snkrdunk_url = "https://snkrdunk.com/products/H06122?slide=right"
 
-# Streamlitアプリタイトル
-st.title("Sneaker Research Tool V2（最終版）")
-
-# 手動更新ボタン
-if st.button("最新データを取得（手動更新）"):
-
-    # Seleniumセットアップ
-    options = Options()
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
-
+# StockXデータ取得
+def get_stockx_data(url):
     try:
-        # スニダンページ取得
-        driver.get(SNKR_URL)
-        time.sleep(2)
-
-        # スニダンの商品画像取得
-        snkr_image = driver.find_element(By.CSS_SELECTOR, "img.swiper-lazy").get_attribute("src")
-
-        # スニダン価格取得
-        snkr_price_text = driver.find_element(By.CLASS_NAME, "c-product__price").text
-        snkr_price = int(''.join(filter(str.isdigit, snkr_price_text)))
-
-        # StockXページ取得
-        driver.get(STOCKX_URL)
-        time.sleep(2)
-
-        # StockXのBid（最高購入希望額）取得
-        stockx_bid_text = driver.find_element(By.CLASS_NAME, "css-12whm1e").text
-        stockx_bid = int(''.join(filter(str.isdigit, stockx_bid_text)))
-
-        # スニダンの手数料・送料を考慮
-        snkr_fee = int(snkr_price * 0.055)  # 5.5%
-        snkr_shipping = 800  # 仮に800円と設定（※あとで調整可能）
-
-        # 総仕入れ価格
-        total_snkr_cost = snkr_price + snkr_fee + snkr_shipping
-
-        # 利益計算
-        profit = stockx_bid - total_snkr_cost
-
-        # 画面に表示
-        st.image(snkr_image, caption="スニダン商品画像", use_column_width=True)
-        st.write(f"【スニダン価格】：¥{snkr_price:,}")
-        st.write(f"【StockX最高Bid】：¥{stockx_bid:,}")
-        st.write(f"【スニダン購入合計】：¥{total_snkr_cost:,}")
-        st.success(f"【期待利益】：¥{profit:,}")
-
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, "html.parser")
+        bid = soup.select_one('div[data-testid="highest-bid"] span')
+        ask = soup.select_one('div[data-testid="lowest-ask"] span')
+        return bid.text if bid else "N/A", ask.text if ask else "N/A"
     except Exception as e:
-        st.error(f"エラーが発生しました: {e}")
+        return "Error", "Error"
 
-    finally:
-        driver.quit()
+# スニダン画像取得
+def get_snkrdunk_image(url):
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, "html.parser")
+        image = soup.find("img")
+        return image["src"] if image else None
+    except Exception as e:
+        return None
+
+# データ取得
+stockx_bid, stockx_ask = get_stockx_data(stockx_url)
+snkrdunk_image_url = get_snkrdunk_image(snkrdunk_url)
+
+# UI表示
+st.title("リアルタイム利益リサーチツール v2 完成版")
+st.write("【対象モデル】 adidas Gazelle Bold 'Pink Glow'")
+
+if snkrdunk_image_url:
+    st.image(snkrdunk_image_url, caption="スニダン商品画像", use_column_width=True)
+else:
+    st.warning("商品画像が取得できませんでした")
+
+st.subheader("StockX情報")
+st.write(f"最高入札価格 (Bid): {stockx_bid}")
+st.write(f"最低販売希望価格 (Ask): {stockx_ask}")
+
+# 更新ボタン
+if st.button("データを手動更新"):
+    stockx_bid, stockx_ask = get_stockx_data(stockx_url)
+    snkrdunk_image_url = get_snkrdunk_image(snkrdunk_url)
+    st.rerun()
