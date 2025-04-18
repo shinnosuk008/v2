@@ -3,7 +3,7 @@ import pandas as pd
 import time
 
 # タイトル
-st.title("現役利益チェッカー - v2 最終版")
+st.title("現役利益チェッカー - v2 最終版（画像つき）")
 
 # 入力欄
 sku = st.text_input("品番（SKU）を入力してください")
@@ -24,15 +24,15 @@ shipping_fee = 850 - 150   # 通常送料850円、ゴールド会員は150円引
 if st.button("手動更新（データ再取得）"):
     st.rerun()
 
-# 商品画像と情報表示（SKU・StockX・スニダン）
-if snkrdunk_url:
+# 商品情報と画像表示
+if sku and stockx_url and snkrdunk_url:
     st.image("https://static.snkrdunk.com/images/products/401378/main/standard.png", width=300)
     st.write(f"商品名 ： adidas Gazelle Bold W ピンクグロー")
     st.write(f"サイズ ： 24.0cm")
     st.write(f"最高入札価格（StockX） ： ¥18,000")
     st.write(f"最低アスク価格（StockX） ： ¥22,000")
     st.write(f"スニダン販売価格（仕入れ想定） ： ¥16,500")
-    st.write(f"特典 ： 1,500円")
+    st.write(f"予想利益 ： 1,500円")
 
 # DataFrame作成
 data = []
