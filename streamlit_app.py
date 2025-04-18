@@ -21,7 +21,7 @@ def fetch_stockx_data(url):
         "User-Agent": "Mozilla/5.0"
     }
     response = requests.get(url, headers=headers)
-    soup = BeautifulSoup(response.content, "lxml")
+    soup = BeautifulSoup(response.content, "html.parser")
 
     bid_prices = []
     ask_prices = []
