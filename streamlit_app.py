@@ -1,56 +1,69 @@
 import streamlit as st
-import pandas as pd
-import time
+import requests
+from bs4 import BeautifulSoup
+from datetime import datetime
 
-# タイトル
-st.title("現役利益チェッカー - v2 最終版（画像つき）")
+st.set_page_config(page_title="スニダン × StockX リサーチツール", layout="wide")
 
-# 入力欄
-sku = st.text_input("品番（SKU）を入力してください")
-stockx_url = st.text_input("StockXリンクを貼ってください")
-snkrdunk_url = st.text_input("スニダンリンクを貼ってください")
+# スニダンとStockXのURL
+snkrdunk_url = "https://snkrdunk.com/products/H06122?slide=right"
+stockx_url = "https://stockx.com/adidas-gazelle-bold-pink-glow-w"
 
-# データ仮置き（今後スクレイピング/APIで自動化）
-sizes = ['23.0', '23.5', '24.0', '24.5', '25.0']
-stockx_bid_prices = [15000, 15200, 14800, 15500, 15300]
-stockx_ask_prices = [15500, 15700, 15300, 16000, 15800]
-snkrdunk_prices = [14000, 14200, 13800, 14100, 13900]
+# 商品画像を取得（スニダンから）
+def get_snkrdunk_image(url):
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        img_tag = soup.find("img", {"class": "product-showcase__img"})
+        if img_tag and 'src' in img_tag.attrs:
+            return img_tag['src']
+    except Exception:
+        return None
+    return None
 
-# スニダン手数料設定（ゴールド会員）
-purchase_fee_rate = 0.055  # 5.5%
-shipping_fee = 850 - 150   # 通常送料850円、ゴールド会員は150円引き
+# StockX情報取得
+def get_stockx_info(url):
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        highest_bid = soup.find("div", {"data-testid": "highest-bid"}).text.strip()
+        lowest_ask = soup.find("div", {"data-testid": "lowest-ask"}).text.strip()
+        return highest_bid, lowest_ask
+    except Exception:
+        return None, None
+
+# データ取得
+image_url = get_snkrdunk_image(snkrdunk_url)
+highest_bid, lowest_ask = get_stockx_info(stockx_url)
+
+# 表示
+st.title("スニダン仕入れ × StockX販売 リサーチツール")
+st.caption("開発バージョン: v2-beta 最終版")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.header("スニーカーダンク")
+    st.write(f"[スニダン商品ページへ移動]({snkrdunk_url})")
+    if image_url:
+        st.image(image_url, use_column_width=True)
+    else:
+        st.write("商品画像が取得できませんでした。")
+
+with col2:
+    st.header("StockX")
+    st.write(f"[StockX商品ページへ移動]({stockx_url})")
+    if highest_bid and lowest_ask:
+        st.subheader("リアルタイム価格情報")
+        st.metric(label="最高Bid（購入希望）", value=highest_bid)
+        st.metric(label="最低Ask（販売希望）", value=lowest_ask)
+    else:
+        st.write("価格情報が取得できませんでした。")
 
 # 手動更新ボタン
-if st.button("手動更新（データ再取得）"):
+if st.button("データ更新（手動）"):
     st.rerun()
 
-# 商品情報と画像表示
-if sku and stockx_url and snkrdunk_url:
-    st.image("https://static.snkrdunk.com/images/products/401378/main/standard.png", width=300)
-    st.write(f"商品名 ： adidas Gazelle Bold W ピンクグロー")
-    st.write(f"サイズ ： 24.0cm")
-    st.write(f"最高入札価格（StockX） ： ¥18,000")
-    st.write(f"最低アスク価格（StockX） ： ¥22,000")
-    st.write(f"スニダン販売価格（仕入れ想定） ： ¥16,500")
-    st.write(f"予想利益 ： 1,500円")
-
-# DataFrame作成
-data = []
-for size, bid, ask, snk_price in zip(sizes, stockx_bid_prices, stockx_ask_prices, snkrdunk_prices):
-    snk_total = snk_price * (1 + purchase_fee_rate) + shipping_fee
-    profit = bid - snk_total
-    profit_rate = profit / snk_total * 100
-    data.append({
-        'サイズ': size,
-        'スニダン仕入れ価格': snk_price,
-        'スニダン支払総額': int(snk_total),
-        'StockX最高入札価格': bid,
-        'StockX最低アスク価格': ask,
-        '想定利益（最高入札）': int(profit),
-        '利益率（最高入札）%': round(profit_rate, 1)
-    })
-
-# DataFrameを表示
-df = pd.DataFrame(data)
-st.subheader("調査結果")
-st.dataframe(df)
+# タイムスタンプ表示
+now = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+st.caption(f"最終データ更新: {now}")
