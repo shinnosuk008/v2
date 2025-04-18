@@ -2,60 +2,54 @@ import streamlit as st
 import pandas as pd
 import time
 
+# サンプルデータ
+def fetch_data():
+    data = {
+        "商品画像": ["https://images.stockx.com/images/adidas-Gazelle-Bold-Pink-Glow-W-Product.jpg"],
+        "商品名": ["adidas Gazelle Bold W Pink Glow"],
+        "サイズ": ["24.0cm"],
+        "最高Bid価格（StockX）": ["¥18,000"],
+        "最低Ask価格（StockX）": ["¥22,000"],
+        "スニダン販売価格（仕入れ想定）": ["¥16,500"],
+        "見込み利益": ["¥1,500"],
+    }
+    return pd.DataFrame(data)
+
+# ページ設定
+st.set_page_config(page_title="Sneaker Profit Checker", layout="wide")
+
 # タイトル
-st.title("スニダン → StockX 利益リサーチ v2正式版")
+st.title("Sneaker Profit Checker - v2 最終版")
 
-# 入力欄
-sku = st.text_input("品番（SKU）を入力してください", value="H06122")
-stockx_url = st.text_input("StockXリンクを貼り付けてください")
-snkrdunk_url = st.text_input("スニダンリンクを貼り付けてください")
+# 更新ボタン
+if st.button("手動更新（データ再取得）"):
+    st.experimental_rerun()
 
-# データ仮置き（今後スクレイピング/APIで自動化）
-sizes = ['23.0', '23.5', '24.0', '24.5', '25.0']
-stockx_bid_prices = [15000, 15200, 14800, 15100, 14900]
-stockx_ask_prices = [15500, 15700, 15300, 15600, 15400]
-snkrdunk_prices = [14000, 14200, 13800, 14100, 13900]
+# 自動更新
+refresh_interval = 30  # 秒
+countdown = st.empty()
 
-# スニダン手数料（ゴールド会員）
-purchase_fee_rate = 0.055  # 5.5%
-shipping_fee = 850 - 150    # 通常送料850円、ゴールド会員150円引き
+# メイン表示
+while True:
+    df = fetch_data()
 
-# DataFrame作成
-data = []
-for size, bid, ask, snk_price in zip(sizes, stockx_bid_prices, stockx_ask_prices, snkrdunk_prices):
-    snk_total = snk_price * (1 + purchase_fee_rate) + shipping_fee
-    profit = bid - snk_total
-    profit_rate = profit / snk_total * 100
-    data.append({
-        'サイズ': size,
-        'スニダン仕入れ価格': snk_price,
-        'スニダン支払総額': int(snk_total),
-        'StockX最高Bid': bid,
-        'StockX最低Ask': ask,
-        '想定利益（円）': int(profit),
-        '利益率（%）': round(profit_rate, 1)
-    })
+    # 商品画像と情報を横並びで表示
+    for idx, row in df.iterrows():
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.image(row["商品画像"], width=150)
+        with col2:
+            st.write(f"**商品名：** {row['商品名']}")
+            st.write(f"**サイズ：** {row['サイズ']}")
+            st.write(f"**最高Bid価格（StockX）：** {row['最高Bid価格（StockX）']}")
+            st.write(f"**最低Ask価格（StockX）：** {row['最低Ask価格（StockX）']}")
+            st.write(f"**スニダン販売価格（仕入れ想定）：** {row['スニダン販売価格（仕入れ想定）']}")
+            st.write(f"**見込み利益：** {row['見込み利益']}")
 
-df = pd.DataFrame(data)
+    # カウントダウン
+    for seconds in range(refresh_interval, 0, -1):
+        countdown.markdown(f"### 次回自動更新まで：{seconds}秒")
+        time.sleep(1)
 
-# 表示
-st.subheader("リサーチ結果")
-st.dataframe(df)
-
-# リンクボタン
-st.markdown("---")
-st.subheader("リンク一覧")
-
-if stockx_url:
-    st.markdown(f"[StockX商品ページへ移動]({stockx_url})", unsafe_allow_html=True)
-if snkrdunk_url:
-    st.markdown(f"[スニダン商品ページへ移動]({snkrdunk_url})", unsafe_allow_html=True)
-
-# 手動更新ボタン
-if st.button("手動で再読み込みする"):
-    st.rerun()
-
-# 自動更新（30秒）
-st.query_params(dummy=str(time.time()))
-time.sleep(30)
-st.experimental_rerun()
+    # 更新！
+    st.experimental_rerun()
