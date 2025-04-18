@@ -1,46 +1,61 @@
 import streamlit as st
+import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
-# 商品情報
-product_name = "adidas Originals Gazelle Bold 'Pink Glow/Victory Blue/Gum'"
-stockx_url = "https://stockx.com/adidas-gazelle-bold-pink-glow-w"
-snkrdunk_url = "https://snkrdunk.com/products/H06122"
-
-# スニダンから画像を取得
-def get_snkrdunk_image(url):
-    try:
-        response = requests.get(url)
-        soup = BeautifulSoup(response.content, "html.parser")
-        img_tag = soup.find("img", {"class": "item-detail__item-img"})
-        if img_tag:
-            return img_tag.get("src")
-        else:
-            return None
-    except Exception as e:
-        return None
-
-# ページ構成
-st.title("商品情報")
-
-# 商品名表示
-st.header(product_name)
-
-# 画像表示
-img_url = get_snkrdunk_image(snkrdunk_url)
-if img_url:
-    st.image(img_url, caption=product_name)
-else:
-    st.warning("商品画像を取得できませんでした。")
-
-# StockXリンク表示
-st.subheader("StockXリンク")
-st.markdown(f"[StockXで見る]({stockx_url})")
-
-# スニダンリンク表示
-st.subheader("スニダンリンク")
-st.markdown(f"[スニダンで見る]({snkrdunk_url})")
+# タイトル
+st.title("慎之介's Gazellebold リサーチツール")
 
 # 手動更新ボタン
-if st.button("手動更新"):
-    st.rerun()
+refresh = st.button('手動更新')
+
+# 本番用StockXページURL
+stockx_url = "https://stockx.com/adidas-gazelle-bold-pink-glow-w"
+
+# サイズリスト
+sizes = ['22.0', '22.5', '23.0', '23.5', '24.0', '24.5', '25.0', '25.5', '26.0']
+
+# データ取得関数
+def fetch_stockx_data(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+    response = requests.get(url, headers=headers)
+    soup = BeautifulSoup(response.content, "lxml")
+
+    bid_prices = []
+    ask_prices = []
+    sale_histories = []
+
+    for size in sizes:
+        # 仮のスクレイピング（StockXのページ構成で後日微修正する）
+        bid = soup.find('div', class_="bid-amount")
+        bid_price = bid.text.strip() if bid else "取得失敗"
+        bid_prices.append(bid_price)
+
+        ask = soup.find('div', class_="ask-amount")
+        ask_price = ask.text.strip() if ask else "取得失敗"
+        ask_prices.append(ask_price)
+
+        history = soup.find('div', class_="sale-amount")
+        sale_price = history.text.strip() if history else "取得失敗"
+        sale_histories.append(sale_price)
+
+    df = pd.DataFrame({
+        "サイズ": sizes,
+        "Bid価格": bid_prices,
+        "Ask価格": ask_prices,
+        "販売履歴": sale_histories
+    })
+
+    return df
+
+# 初回データ取得（ページロード時）
+data = fetch_stockx_data(stockx_url)
+data_placeholder = st.empty()
+data_placeholder.dataframe(data)
+
+# 手動更新ボタン押下時
+if refresh:
+    data = fetch_stockx_data(stockx_url)
+    data_placeholder.dataframe(data)
