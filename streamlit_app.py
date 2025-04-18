@@ -2,54 +2,51 @@ import streamlit as st
 import pandas as pd
 import time
 
-# サンプルデータ
-def fetch_data():
-    data = {
-        "商品画像": ["https://images.stockx.com/images/adidas-Gazelle-Bold-Pink-Glow-W-Product.jpg"],
-        "商品名": ["adidas Gazelle Bold W Pink Glow"],
-        "サイズ": ["24.0cm"],
-        "最高Bid価格（StockX）": ["¥18,000"],
-        "最低Ask価格（StockX）": ["¥22,000"],
-        "スニダン販売価格（仕入れ想定）": ["¥16,500"],
-        "見込み利益": ["¥1,500"],
-    }
-    return pd.DataFrame(data)
-
-# ページ設定
-st.set_page_config(page_title="Sneaker Profit Checker", layout="wide")
-
 # タイトル
-st.title("Sneaker Profit Checker - v2 最終版")
+st.title("スニーカー利益チェッカー - v2 最終版")
 
-# 更新ボタン
-if st.button("手動更新（データ再取得）"):
-    st.rerun()
+# 入力欄
+sku = st.text_input("品番（SKU）を入力してください")
+stockx_url = st.text_input("StockXリンクを貼ってください")
+snkrdunk_url = st.text_input("スニダンリンクを貼ってください")
 
-# 自動更新
-refresh_interval = 30  # 秒
-countdown = st.empty()
+# データ仮置き
+sizes = ['23.0', '23.5', '24.0', '24.5', '25.0']
+stockx_bid_prices = [15000, 15200, 14800, 15300, 15000]
+stockx_ask_prices = [15500, 15700, 15300, 15800, 15500]
+snkrdunk_prices = [14000, 14200, 13800, 14100, 13900]
 
-# メイン表示
-while True:
-    df = fetch_data()
+# スニダン手数料 (ゴールド会員)
+purchase_fee_rate = 0.055  # 5.5%
+shipping_fee = 850 - 150  # 通常送料850円から150円引き
 
-    # 商品画像と情報を横並びで表示
-    for idx, row in df.iterrows():
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            st.image(row["商品画像"], width=150)
-        with col2:
-            st.write(f"**商品名：** {row['商品名']}")
-            st.write(f"**サイズ：** {row['サイズ']}")
-            st.write(f"**最高Bid価格（StockX）：** {row['最高Bid価格（StockX）']}")
-            st.write(f"**最低Ask価格（StockX）：** {row['最低Ask価格（StockX）']}")
-            st.write(f"**スニダン販売価格（仕入れ想定）：** {row['スニダン販売価格（仕入れ想定）']}")
-            st.write(f"**見込み利益：** {row['見込み利益']}")
+# DataFrame作成
+data = []
+for size, bid, ask, snk_price in zip(sizes, stockx_bid_prices, stockx_ask_prices, snkrdunk_prices):
+    snk_total = snk_price * (1 + purchase_fee_rate) + shipping_fee
+    profit = bid - snk_total
+    profit_rate = profit / snk_total * 100
+    data.append({
+        "サイズ": size,
+        "スニダン仕入れ価格": snk_price,
+        "スニダン支払総額": int(snk_total),
+        "StockX最高入札": bid,
+        "StockX最低アスク": ask,
+        "予想利益": int(profit),
+        "利益率(%)": round(profit_rate, 2)
+    })
 
-    # カウントダウン
-    for seconds in range(refresh_interval, 0, -1):
-        countdown.markdown(f"### 次回自動更新まで：{seconds}秒")
-        time.sleep(1)
+df = pd.DataFrame(data)
 
-    # 更新！
-    st.rerun()
+# 表示
+st.write("調査結果")
+st.dataframe(df)
+
+# 商品画像とリンク
+if snkrdunk_url:
+    st.image("https://static.snkrdunk.com/images/products/1000x1000/default.jpg", width=300)  # 仮画像
+    st.markdown(f"[スニダン商品ページへ]({snkrdunk_url})")
+
+# 自動更新（30秒）
+time.sleep(30)
+st.rerun()
