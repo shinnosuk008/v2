@@ -23,7 +23,7 @@ st.title("Sneaker Profit Checker - v2 最終版")
 
 # 更新ボタン
 if st.button("手動更新（データ再取得）"):
-    st.experimental_rerun()
+    st.rerun()
 
 # 自動更新
 refresh_interval = 30  # 秒
@@ -52,4 +52,4 @@ while True:
         time.sleep(1)
 
     # 更新！
-    st.experimental_rerun()
+    st.rerun()
